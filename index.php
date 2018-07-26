@@ -109,6 +109,29 @@
 		ini_set('display_errors', 1);
 	}
 
+	function relative_to ($from, $to) {
+		$fromParts = explode('/',$from);
+		$toParts = explode('/',$to);
+		$length = min(count($fromParts), count($toParts));
+		$samePartsLength = $length;
+		for ($i = 1; $i < $length; $i++) {
+			if ($fromParts[$i] !== $toParts[$i]) {
+				$samePartsLength = $i+1;
+				break;
+			}
+		}
+		$outputParts = array();
+		for ($i = $samePartsLength; $i < count($fromParts); $i++) {
+			$outputParts[] = '..';
+		}
+		for ($i = $samePartsLength; $i <= count($toParts); $i++) {
+			$outputParts[] = $toParts[$i-1];
+		}
+		$outputParts = array_merge($outputParts,array_slice($toParts,$samePartsLength));
+		return implode('/',$outputParts);
+	}
+
+
 	// Generated settings file.
 	$data = array();
 
@@ -121,7 +144,7 @@
 	$data['ignores'][] = basename('index.php');
 
 	// Use canonized path
-	$data['uploaddir'] = realpath($settings['base_path']);
+	$data['uploaddir'] = relative_to(dirname(__FILE__).'/',realpath($settings['base_path'].'/'));
 
 	// Is the directory there?
 	if (!is_dir($data['uploaddir'])) {
@@ -224,7 +247,7 @@
 				$_SESSION['upload_user_files'][] = $file_data['target_file_name'];
 			}
 
-			echo $settings['url'] .  $file_data['target_file_name'] . "\n";
+			echo ' * ',$settings['url'] .  $file_data['upload_target_file'] . "\n";
 
 			// Return target file name for later handling
 			return $file_data['upload_target_file'];
@@ -256,7 +279,7 @@
 			$fqfn = $data['uploaddir'] . DIRECTORY_SEPARATOR . $file;
 			if (!in_array($file, $data['ignores']) && isReadableFile($fqfn)) {
 				if (substr($file, 0, 1) === '.') {
-					rename($fqfn, substr($fqfn, 1));
+					rename($fqfn, $data['uploaddir'] . DIRECTORY_SEPARATOR . substr($file,1));
 					echo 'File has been made visible';
 				} else {
 					rename($fqfn, $data['uploaddir'] . DIRECTORY_SEPARATOR . '.' . $file);
