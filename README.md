@@ -10,7 +10,7 @@ Simple single-file PHP file upload (file share hosting) script.
 - [x] Private files
 - [x] Sort by age
 - [x] Auto-remove old files
-- [ ] AJAX Uploader
+- [x] AJAX Uploader
 
 ## Installation
 
