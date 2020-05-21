@@ -1,6 +1,10 @@
 <?php
-// This is a local configuration file.
-// You can make any configuration changes in this file, or in 'index.php'.
-// But it is optional, feel free to delete.
-
-$settings['some_foo'] = 'FOO';
+$settings = array(
+  'title' => 'File Upload Service',
+  'url' => 'http://localhost:8080',
+  'lang' => 'en',
+  'lang_dir' => 'ltr',
+  'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
+  'random_name_len' => 20,
+  'listfiles_date_format' => 'Y/m/d H:i',
+);

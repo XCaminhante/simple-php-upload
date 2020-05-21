@@ -1,674 +1,506 @@
 <?php
-  /*
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+/*
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  */
-
-  // =============={ Configuration Begin }==============
-  $settings = array(
-
-    // Website title. Displayed of top of the page.
-    'title' => 'strace.club',
-
-    // Description for this website
-    'description' => 'This is libre file hosting. Code is available <a href="https://github.com/muchweb/simple-php-upload">on Github</a>.',
-
-    // Upload directory. Could be absolute or relative.
-    // Default: auto-detection
-    'base_path' => dirname(__FILE__) . DIRECTORY_SEPARATOR,
-
-    // Display list uploaded files
-    // Default: true
-    'listfiles' => true,
-
-    // Allow users to delete files that they have uploaded (will enable sessions)
-    // Default: true
-    'allow_deletion' => true,
-
-    // Allow users to mark files as hidden
-    // Default: true
-    'allow_private' => true,
-
-    // Display file sizes
-    // Default: true
-    'listfiles_size' => true,
-
-    // Display file dates
-    // Default: true
-    'listfiles_date' => true,
-
-    // Display file dates format
-    // Default: 'F d Y H:i:s'
-    'listfiles_date_format' => 'F d Y H:i:s',
-
-    // Randomize file names. Number for file name lenght or false to disable.
-    // Default: 8
-    'random_name_len' => 8,
-
-    // Keep filetype (file extension) information (if random name is activated).
-    // Default: true
-    'random_name_keep_type' => true,
-
-    // Letters that are used for random file name generation (alphabet).
-    // Default: 'abcdefghijklmnopqrstuvwxyz0123456789'
-    'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
-
-    // Display debugging information
-    // Default: false
-    'debug' => false,
-
-    // Complete URL to your directory with trailing slash (!)
-    // Default: autoDetectBaseUrl()
-    'url' => 'http://localhost:8000/',
-
-    // Amount of seconds that each file should be stored for (0 for no limit)
-    // Default: 30 days (60 * 60 * 24 * 30)
-    'time_limit' => 60 * 60 * 24 * 30,
-
-    // Files that will be ignored
-    'ignores' => array(
-      '.',
-      '..',
-      'LICENSE',
-      'README.md',
-      basename($_SERVER['PHP_SELF']),
-      'config.php',
-    ),
-
-    // Language code
-    // Default: 'en'
-    'lang' => 'en',
-
-    // Language direction
-    // Default: 'ltr'
-    'lang_dir' => 'ltr',
-
-    // Privacy: Allow external references (the "fork me" ribbon)
-    // Default: true
-    'ribbon_enable' => true,
-  );
-  // =============={ Configuration End }==============
-
-  // Load local config file if it exists.
-  if (isReadableFile('config.php')) include('config.php');
-
-  // Enabling error reporting
-  if ($settings['debug']) {
-    error_reporting(E_ALL);
-    ini_set('display_startup_errors', 1);
-    ini_set('display_errors', 1);
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+namespace O; include "php-o/O.php";
+include "config.php";
+function html () {
+  header('Content-type: text/html; charset=UTF-8');
+}
+function plain_text () {
+  header('Content-type: text/plain; charset=UTF-8');
+}
+class File {
+  private const link = 0120000;
+  private const file = 0100000;
+  private const block = 0060000;
+  private const directory = 0040000;
+  private const fifo = 0010000;
+  private $filename = '';
+  private $pathinfo = '';
+  private $filehandle = false;
+  private $openmode = '';
+  // private $stats;
+  function __construct ($filename) {
+    $this->filename = s($filename);
+    $this->pathinfo = pathinfo($filename);
+    // $this->stats = stats($filename);
   }
-
-  function relative_to ($from, $to) {
-    $fromParts = explode('/',$from);
-    $toParts = explode('/',$to);
-    $length = min(count($fromParts), count($toParts));
-    $samePartsLength = $length;
-    for ($i = 1; $i < $length; $i++) {
-      if ($fromParts[$i] !== $toParts[$i]) {
-        $samePartsLength = $i+1;
-        break;
-      }
-    }
-    $outputParts = array();
-    for ($i = $samePartsLength; $i < count($fromParts); $i++) {
-      $outputParts[] = '..';
-    }
-    for ($i = $samePartsLength; $i <= count($toParts); $i++) {
-      $outputParts[] = $toParts[$i-1];
-    }
-    $outputParts = array_merge($outputParts,array_slice($toParts,$samePartsLength));
-    return implode('/',$outputParts);
+  function __destruct () {
   }
-
-
-  // Generated settings file.
-  $data = array();
-
-  $data['description'] = '';
-  if (strlen($settings['description']) > 0)
-    $data['description'] = $settings['description'] . '<br><br>';
-
-  // Adding current script name to ignore list
-  $data['ignores'] = $settings['ignores'];
-  $data['ignores'][] = basename('index.php');
-
-  // Use canonized path
-  $data['uploaddir'] = relative_to(dirname(__FILE__).'/',realpath($settings['base_path'].'/'));
-
-  // Is the directory there?
-  if (!is_dir($data['uploaddir'])) {
-    // Not found
-    die(sprintf('[%s:%d]: Upload path "%s" is not a directory.', pathinfo(__FILE__, PATHINFO_BASENAME), __LINE__, $data['uploaddir']));
-  } elseif (!is_readable($data['uploaddir'])) {
-    // Not readable
-    die(sprintf('[%s:%d]: Upload directory "%s" is not readable.', pathinfo(__FILE__, PATHINFO_BASENAME), __LINE__, $data['uploaddir']));
-  } elseif (!is_writable($data['uploaddir'])) {
-    // Not writable
-    die(sprintf('[%s:%d]: Upload directory "%s" is not writable.', pathinfo(__FILE__, PATHINFO_BASENAME), __LINE__, $data['uploaddir']));
+  // Directory of the current script
+  static function current_dir () {
+    return dirname(__FILE__);
   }
-
-  // Detect maximum upload size, allowed by server
-  $data['max_upload_size'] = ini_get('upload_max_filesize');
-
-  // If file deletion or private files are allowed, starting a session.
-  // This is required for user authentification
-  if ($settings['allow_deletion'] || $settings['allow_private']) {
-    session_start();
-
-    // Genereate random 'user id'
-    if (!isset($_SESSION['upload_user_id']))
-      $_SESSION['upload_user_id'] = mt_rand(100000, 999999);
-
-    // Store list of files that were uploaded by this user
-    if (!isset($_SESSION['upload_user_files']))
-      $_SESSION['upload_user_files'] = array();
+  static function separator () {
+    return DIRECTORY_SEPARATOR;
   }
-
-  // If debug is enabled, logging all variables
-  if ($settings['debug']) {
-    // Displaying debug information
-    echo '<h2>Settings:</h2>';
-    echo '<pre>' . print_r($settings, true) . '</pre>';
-
-    // Displaying debug information
-    echo '<h2>Data:</h2>';
-    echo '<pre>' . print_r($data, true) .  '</pre>';
-
-    // Displaying debug information
-    echo '<h2>SESSION:</h2>';
-    echo '<pre>' . print_r($_SESSION, true) . '</pre>';
+  static function get_straight_path ($path) {
+    $path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
+    $parts = array_filter(explode(DIRECTORY_SEPARATOR, $path), 'strlen');
+    $absolutes = array();
+    foreach ($parts as $part) {
+      if ('.' == $part) continue;
+      if ('..' == $part) {
+        array_pop($absolutes);
+      } else {
+        $absolutes[] = $part; }}
+    return implode(DIRECTORY_SEPARATOR, $absolutes);
   }
-
-  // Format file size
-  function formatSize ($bytes) {
-    $units = array('B', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');
-
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow = min($pow, count($units) - 1);
-
-    $bytes /= pow(1024, $pow);
-
-    return ceil($bytes) . ' ' . $units[$pow];
+  public function is_directory () {
+    return is_dir($this->filename);
+    // return ($this->stats['mode'] & directory) === directory;
   }
-
-  // Rotate a two-dimensional array. Used for file uploads
-  function diverseArray ($vector) {
-    $result = array();
-    foreach ($vector as $key1 => $value1)
-      foreach ($value1 as $key2 => $value2)
-        $result[$key2][$key1] = $value2;
-    return $result;
+  public function is_file () {
+    return is_file($this->filename);
+    // return ($this->stats['mode'] & file) === file;
   }
-
-  // Handling file upload
-  function uploadFile ($file_data) {
-    global $settings, $data;
-
-    $file_data['uploaded_file_name'] = basename($file_data['name']);
-    $file_data['target_file_name'] = $file_data['uploaded_file_name'];
-
-    // Generating random file name
-    if ($settings['random_name_len'] !== false) {
-      do {
-        $file_data['target_file_name'] = '';
-        while (strlen($file_data['target_file_name']) < $settings['random_name_len']) {
-          $file_data['target_file_name'] .= $settings['random_name_alphabet'][mt_rand(0, strlen($settings['random_name_alphabet']) - 1)];
-        }
-
-        if ($settings['random_name_keep_type']) {
-          $file_data['target_file_name'] .= '.' . pathinfo($file_data['uploaded_file_name'], PATHINFO_EXTENSION);
-        }
-      } while (isReadableFile($file_data['target_file_name']));
-    }
-
-    $file_data['upload_target_file'] = $data['uploaddir'] . DIRECTORY_SEPARATOR . $file_data['target_file_name'];
-
-    // Do now allow to overwriting files
-    if (isReadableFile($file_data['upload_target_file'])) {
-      echo 'File name already exists' . "\n";
-      return false;
-    }
-
-    // Moving uploaded file OK
-    if (move_uploaded_file($file_data['tmp_name'], $file_data['upload_target_file'])) {
-      if ($settings['listfiles'] && ($settings['allow_deletion'] || $settings['allow_private'])) {
-        $_SESSION['upload_user_files'][] = $file_data['target_file_name'];
-      }
-
-      echo $settings['url'] .  $file_data['upload_target_file'] . "\n";
-
-      // Return target file name for later handling
-      return $file_data['upload_target_file'];
+  // The directory containing this file/directory
+  public function parent () {
+    // return dirname($this->filename);
+    return $this->pathinfo['dirname'];
+  }
+  // Canonical path to file/directory
+  public function path () {
+    if ($this->exists()) { return realpath($this->filename); }
+    return realpath($this->parent()) . File::separator() . $this->name();
+  }
+  public function name () {
+    return $this->pathinfo['basename'];
+  }
+  public function relative_name () {
+    return $this->filename;
+  }
+  public function extension () {
+    return $this->pathinfo['extension'];
+  }
+  // Length of bytes on file or number of entries on a directory
+  public function length () {
+    if ($this->is_directory()) {
+      return a(scandir($this->filename,SCANDIR_SORT_NONE))->count() - 2; }
+    if ($this->is_file()) {
+      return filesize($this->filename); }
+    return -1;
+    // return $this->stats['size'];
+  }
+  public function exists () {
+    return file_exists($this->filename);
+  }
+  public function is_open () {
+    return $filehandle != false;
+  }
+  public function is_uploaded () {
+    return is_uploaded_file($this->filename);
+  }
+  public function can_read () {
+    return is_readable($this->filename);
+  }
+  public function can_write () {
+    return is_writable($this->filename);
+  }
+  public function creation_time () {
+    return filectime($this->filename);
+  }
+  public function last_modified () {
+    return filemtime($this->filename);
+  }
+  public function last_accessed () {
+    return fileatime($this->filename);
+  }
+  // The file pointer position
+  public function position () {
+    if (!$this->filehandle) { return -1; }
+    return ftell($this->filehandle);
+  }
+  // A string describing the mode used to open the file
+  public function mode () {
+    return $this->openmode;
+  }
+  public function open ($mode) {
+    if ($this->filehandle) { return false; }
+    if ($this->is_directory()) {
+      $this->openmode = s("d");
+      $this->filehandle = opendir($this->filename);
     } else {
-      echo 'Error: unable to upload the file.';
-      return false;
-    }
+      $this->openmode = s($mode);
+      $this->filehandle = fopen($this->filename,$mode); }
+    if (!$this->filehandle) { $this->openmode = ''; }
+    return ($this->filehandle != false);
   }
-
-  // Delete file
-  function deleteFile ($file) {
-    global $data;
-
-    if (in_array(substr($file, 1), $_SESSION['upload_user_files']) || in_array($file, $_SESSION['upload_user_files'])) {
-      $fqfn = $data['uploaddir'] . DIRECTORY_SEPARATOR . $file;
-      if (!in_array($file, $data['ignores']) && isReadableFile($fqfn)) {
-        unlink($fqfn);
-        echo 'File has been removed';
-        exit;
-      }
-    }
+  public function open_rw () {
+    return $this->open("c+b");
   }
-
-  // Mark/unmark file as hidden
-  function markUnmarkHidden ($file) {
-    global $data;
-
-    if (in_array(substr($file, 1), $_SESSION['upload_user_files']) || in_array($file, $_SESSION['upload_user_files'])) {
-      $fqfn = $data['uploaddir'] . DIRECTORY_SEPARATOR . $file;
-      if (!in_array($file, $data['ignores']) && isReadableFile($fqfn)) {
-        if (substr($file, 0, 1) === '.') {
-          rename($fqfn, $data['uploaddir'] . DIRECTORY_SEPARATOR . substr($file,1));
-          echo 'File has been made visible';
-        } else {
-          rename($fqfn, $data['uploaddir'] . DIRECTORY_SEPARATOR . '.' . $file);
-          echo 'File has been hidden';
-        }
-        exit;
-      }
-    }
+  public function close () {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_directory()) {
+      closedir($this->filehandle);
+      $r = true; }
+    if ($this->is_file()) {
+      $r = fclose($this->filehandle); }
+    $this->filehandle = false;
+    $this->openmode = '';
+    return $r;
   }
-
-  // Checks if the given file is a file and is readable
-  function isReadableFile ($file) {
-    return (is_file($file) && is_readable($file));
+  public function remove () {
+    if ($this->filehandle) { $this->close(); }
+    if ($this->is_file()) { return unlink($this->filename); }
+    if ($this->is_directory()) { return rmdir($this->filename); }
+    return false;
   }
-
-  // Files are being POSEed. Uploading them one by one.
-  if (isset($_FILES['file'])) {
-    header('Content-type: text/plain');
-    if (is_array($_FILES['file'])) {
-      $file_array = diverseArray($_FILES['file']);
-      foreach ($file_array as $file_data) {
-        $targetFile = uploadFile($file_data);
-      } //END - foreach
+  public function copy_to ($target) {
+    $this->flush();
+    return copy($this->filename,$target);
+  }
+  public function rename_to ($target) {
+    if ($this->filehandle) { $this->close(); }
+    $r = rename($this->filename,$target);
+    if ($r) {
+      $this->filename = s($target);
+      $this->pathinfo = pathinfo($target); }
+    return $r;
+  }
+  public function seek ($pos = 0, $whence = SEEK_CUR) {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return fseek($this->filehandle, $pos, $whence); }
+    return false;
+  }
+  public function rewind () {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return rewind($this->filehandle); }
+    if ($this->is_directory()) { rewinddir($this->filehandle); return true; }
+    return false;
+  }
+  public function read ($bytes = 1) {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return fread($this->filehandle, $bytes); }
+    if ($this->is_directory()) { return readdir($this->filehandle); }
+    return false;
+  }
+  public function readln () {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return fgets($this->filehandle); }
+    if ($this->is_directory()) { return readdir($this->filehandle); }
+    return false;
+  }
+  public function read_all () {
+    if (!$this->filehandle) { return false; }
+    $this->rewind();
+    if ($this->is_file()) { return $this->read($this->length()); }
+    if ($this->is_directory()) {
+      $r = '';
+      for ($i = 1; $i <= $this->length(); $i++) { $r .= readdir($this->filehandle) . "\n"; }
+      return $r; }
+    return false;
+  }
+  public function write ($str) {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return fwrite($this->filehandle, $str); }
+    return false;
+  }
+  public function write_all ($lines) {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { 
+      ftruncate($this->filehandle, 0);
+      rewind($this->filehandle);
+      foreach ($lines as $line) {
+        $r = $this->write($line);
+        if ($r != count($line)) { return false; }}
+      return true; }
+    return false;
+  }
+  public function flush () {
+    if (!$this->filehandle) { return false; }
+    if ($this->is_file()) { return fflush($this->filehandle); }
+    return false;
+  }
+  public function list ($pattern = '*') {
+    $dir = $this->parent();
+    if ($this->is_directory() && $this->exists()) {
+      $dir = $this->name(); }
+    return glob($dir . File::separator() . $pattern, GLOB_MARK & GLOB_NOSORT & GLOB_BRACE);
+  }
+  public function mkdir ($name = false) {
+    if (!$name && !$this->exists()) {
+      return mkdir($this->filename, 0777, true);
     } else {
-      $targetFile = uploadFile($_FILES['file']);
-    }
-    exit;
+      return false; }
+    $dir = $this->parent();
+    if ($this->is_directory() && $this->exists()) {
+      $dir = $this->name(); }
+    return mkdir($dir . File::separator() . $name, 0777, true);
   }
-
-  // Other file functions (delete, private).
-  if (isset($_POST)) {
-    if ($settings['allow_deletion'] && (isset($_POST['target'])) && isset($_POST['action']) && $_POST['action'] === 'delete') {
-      deleteFile($_POST['target']);
-    }
-
-    if ($settings['allow_private'] && (isset($_POST['target'])) && isset($_POST['action']) && $_POST['action'] === 'privatetoggle') {
-      markUnmarkHidden($_POST['target']);
-    }
+  public function mkfile ($name) {
+    $dir = $this->parent();
+    if ($this->is_directory() && $this->exists()) {
+      $dir = $this->name(); }
+    return touch($dir . File::separator() . $name);
   }
-
-  // List files in a given directory, excluding certain files
-  function createArrayFromPath ($dir) {
-    global $data;
-
-    // Empty paths are not accepted
-    if (empty($dir)) {
-      die(sprintf('[%s:%d]: R.I.P.: Parameter "dir" cannot be empty.', __FUNCTION__, __LINE__));
-    } // END - if
-
-    $file_array = array();
-
-    $dh = opendir($dir) or die(sprintf('[%s:%d]: R.I.P.: Cannot read directory "%s".', __FUNCTION__, __LINE__, $dir));
-
-    while ($filename = readdir($dh)) {
-      $fqfn = $dir . DIRECTORY_SEPARATOR . $filename;
-      if (isReadableFile($fqfn) && !in_array($filename, $data['ignores'])) {
-        $file_array[filemtime($fqfn)] = $filename;
-      }
-    } //END - while
-
-    ksort($file_array);
-
-    $file_array = array_reverse($file_array, true);
-
-    return $file_array;
+  public function lock_exclusive () {
+    if ($this->is_directory()) { return false; }
+    if (!$this->filehandle) { $this->open_rw(); }
+    return ($this->filehandle &&
+      flock($this->filehandle, LOCK_EX|LOCK_NB, $eWouldBlock) == true &&
+      $eWouldBlock == 0);
   }
-
-  // Removes old files
-  function removeOldFiles ($dir) {
-    global $file_array, $settings;
-
-    foreach ($file_array as $file) {
-      $fqfn = $dir . DIRECTORY_SEPARATOR . $file;
-      if ($settings['time_limit'] < time() - filemtime($fqfn)) {
-        unlink($fqfn);
-      }
-    } //END - foreach
+  public function lock_shared () {
+    if ($this->is_directory()) { return false; }
+    if (!$this->filehandle) { $this->open_rw(); }
+    return ($this->filehandle &&
+      flock($this->filehandle, LOCK_SH|LOCK_NB, $eWouldBlock) &&
+      $eWouldBlock == 0);
   }
-
-  // Detects base URL
-  function autoDetectBaseUrl () {
-    // Detect protocol
-    $protocol = 'http';
-    if (
-      ((isset($_SERVER['HTTPS'])) && (strtolower($_SERVER['HTTPS']) == 'on')) ||
-      ((isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) && (strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) == 'https'))
-    ) $protocol = 'https';
-
-    // Detect port
-    $port = getenv('SERVER_PORT');
-    if (
-      (($port == 80) && ($protocol == 'http')) ||
-      (($port == 443) && ($protocol == 'https'))
-    ) $port = '';
-
-    // Detect server name
-    $server_name = getenv('SERVER_NAME');
-    if ($server_name === false) $server_name = 'localhost';
-
-    // Construct base URL
-    $base_url = sprintf(
-      '%s://%s%s%s',
-      $protocol,
-      $server_name,
-      $port,
-      dirname(getenv('SCRIPT_NAME'))
-    );
-
-    return $base_url;
+  public function unlock () {
+    if ($this->filehandle) { return $this->close(); }
+    return false;
   }
-
-  // Only read files if the feature is enabled
-  if ($settings['listfiles']) {
-    $file_array = createArrayFromPath($data['uploaddir']);
-
-    // Removing old files
-    if ($settings['time_limit'] > 0)
-      removeOldFiles($data['uploaddir']);
-
-    $file_array = createArrayFromPath($data['uploaddir']);
+}
+class Template {
+  private $keys;
+  private $template;
+  function __construct ($template) {
+    $this->template = s($template);
+    $this->keys = [];
   }
-?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="<?=$settings['lang']?>" lang="<?=$settings['lang']?>" dir="<?=$settings['lang_dir']?>">
-  <head>
-    <meta http-equiv="content-type" content="text/html;charset=UTF-8" />
-    <meta http-equiv="content-style-type" content="text/css" />
-    <meta http-equiv="content-script-type" content="text/javascript" />
-    <meta http-equiv="language" content="<?=$settings['lang']?>" />
-
-    <meta name="robots" content="noindex" />
-    <meta name="referrer" content="origin-when-crossorigin" />
-    <title><?=$settings['title']?></title>
-    <style type="text/css" media="screen">
-      body {
-        background: #111;
-        margin: 0;
-        color: #ddd;
-        font-family: sans-serif;
-      }
-
-      body > h1 {
-        display: block;
-        background: rgba(255, 255, 255, 0.05);
-        padding: 8px 16px;
-        text-align: center;
-        margin: 0;
-      }
-
-      body > form {
-        display: block;
-        background: rgba(255, 255, 255, 0.075);
-        padding: 16px 16px;
-        margin: 0;
-        text-align: center;
-      }
-
-      body > ul {
-        display: block;
-        padding: 0;
-        max-width: 1000px;
-        margin: 32px auto;
-      }
-
-      body > ul > li {
-        display: block;
-        margin: 0;
-        padding: 0;
-      }
-
-      body > ul > li > a.uploaded_file {
-        display: block;
-        margin: 0 0 1px 0;
-        list-style: none;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 8px 16px;
-        text-decoration: none;
-        color: inherit;
-        opacity: 0.5;
-      }
-
-      body > ul > li > a:hover {
-        opacity: 1;
-      }
-
-      body > ul > li > a:active {
-        opacity: 0.5;
-      }
-
-      body > ul > li > a > span {
-        float: right;
-        font-size: 90%;
-      }
-
-      body > ul > li > form {
-        display: inline-block;
-        padding: 0;
-        margin: 0;
-      }
-
-      body > ul > li.owned {
-        margin: 8px;
-      }
-
-      body > ul > li > form > button {
-        opacity: 0.5;
-        display: inline-block;
-        padding: 4px 16px;
-        margin: 0;
-        border: 0;
-        background: rgba(255, 255, 255, 0.1);
-        color: inherit;
-      }
-
-      body > ul > li > form > button:hover {
-        opacity: 1;
-      }
-
-      body > ul > li > form > button:active {
-        opacity: 0.5;
-      }
-
-      body > ul > li.uploading {
-        animation: upanim 2s linear 0s infinite alternate;
-      }
-
-      @keyframes upanim {
-        from {
-          opacity: 0.3;
-        }
-        to {
-          opacity: 0.8;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <h1><?=$settings['title']?></h1>
-    <form action="<?= $settings['url'] ?>" method="post" enctype="multipart/form-data" class="dropzone" id="simpleupload-form">
-      <?=$data['description']?>
-      Choose a file or Drag&amp;Drop. Maximum upload size is <?php echo $data['max_upload_size']; ?>.<br /><br />
-      <input type="file" name="file[]" id="simpleupload-input" />
-    </form>
-    <ul id="simpleupload-ul">
-    <?php if (($settings['listfiles']) && (count($file_array) > 0)) {
-      foreach ($file_array as $mtime => $filename) {
-        $fqfn = $data['uploaddir'] . DIRECTORY_SEPARATOR . $filename;
-        $file_info = array();
-        $file_owner = false;
-        $file_private = $filename[0] === '.';
-
-        if ($settings['listfiles_size'])
-          $file_info[] = formatSize(filesize($fqfn));
-
-        if ($settings['listfiles_size'])
-          $file_info[] = date($settings['listfiles_date_format'], $mtime);
-
-        if ($settings['allow_deletion'] || $settings['allow_private'])
-          if (in_array(substr($filename, 1), $_SESSION['upload_user_files']) || in_array($filename, $_SESSION['upload_user_files']))
-            $file_owner = true;
-
-        $file_info = implode(', ', $file_info);
-
-        if (strlen($file_info) > 0)
-          $file_info = ' (' . $file_info . ')';
-
-        $class = '';
-        if ($file_owner)
-          $class = 'owned';
-
-        if (!$file_private || $file_owner) {
-          echo "<li class=\"' . $class . '\">";
-
-          // Create full-qualified URL and clean it a bit
-          $url = str_replace('/./', '/', sprintf('%s%s/%s', $settings['url'], $data['uploaddir'], $filename));
-
-          echo "<a class=\"uploaded_file\" href=\"$url\" target=\"_blank\">$filename<span>$file_info</span></a>";
-
-          if ($file_owner) {
-            if ($settings['allow_deletion'])
-              echo '<form action="' . $settings['url'] . '" method="post"><input type="hidden" name="target" value="' . $filename . '" /><input type="hidden" name="action" value="delete" /><button type="submit">delete</button></form>';
-
-            if ($settings['allow_private'])
-              if ($file_private)
-                echo '<form action="' . $settings['url'] . '" method="post"><input type="hidden" name="target" value="' . $filename . '" /><input type="hidden" name="action" value="privatetoggle" /><button type="submit">make public</button></form>';
-              else
-                echo '<form action="' . $settings['url'] . '" method="post"><input type="hidden" name="target" value="' . $filename . '" /><input type="hidden" name="action" value="privatetoggle" /><button type="submit">make private</button></form>';
-          }
-
-          echo "</li>";
-        }
-      }
-    ?>
-    </ul>
-    <?php
-
-    }
-
-    if ($settings['ribbon_enable']) {
-    ?>
-      <a href="https://github.com/muchweb/simple-php-upload" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://camo.githubusercontent.com/38ef81f8aca64bb9a64448d0d70f1308ef5341ab/68747470733a2f2f73332e616d617a6f6e6177732e636f6d2f6769746875622f726962626f6e732f666f726b6d655f72696768745f6461726b626c75655f3132313632312e706e67" alt="Fork me on GitHub" data-canonical-src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png"></a>
-    <?php
-    }
-    ?>
-
-    <script type="text/javascript">
-    <!--
-      // Init some variables to shorten code
-      var target_form        = document.getElementById('simpleupload-form');
-      var target_ul          = document.getElementById('simpleupload-ul');
-      var target_input       = document.getElementById('simpleupload-input');
-      var settings_listfiles = <?=($settings['listfiles'] ? 'true' : 'false')?>;
-
-      /**
-       * Initializes the upload form
-       */
-      function init () {
-        // Register drag-over event listener
-        target_form.addEventListener('dragover', function (event) {
-          event.preventDefault();
-        }, false);
-
-        // ... and the drop event listener
-        target_form.addEventListener('drop', handleFiles, false);
-
-        // Register onchange-event function
-        target_input.onchange = function () {
-          addFileLi('Uploading...', '');
-          target_form.submit();
-        };
-      }
-
-      /**
-       * Adds given file in a new li-tag to target_ul list
-       *
-       * @param name Name of the file
-       * @param info Some more informations
-       */
-      function addFileLi (name, info) {
-        if (settings_listfiles == false) {
-          return;
-        }
-
-        target_form.style.display = 'none';
-
-        var new_li = document.createElement('li');
-        new_li.className = 'uploading';
-
-        var new_a = document.createElement('a');
-        new_a.innerHTML = name;
-        new_li.appendChild(new_a);
-
-        var new_span = document.createElement('span');
-        new_span.innerHTML = info;
-        new_a.appendChild(new_span);
-
-        target_ul.insertBefore(new_li, target_ul.firstChild);
-      }
-
-      /**
-       * Handles given event for file upload
-       *
-       * @param event Event to handle file upload for
-       */
-      function handleFiles (event) {
-        event.preventDefault();
-
-        var files = event.dataTransfer.files;
-
-        var form = new FormData();
-
-        for (var i = 0; i < files.length; i++) {
-          form.append('file[]', files[i]);
-          addFileLi(files[i].name, files[i].size + ' bytes');
-        }
-
-        var xhr = new XMLHttpRequest();
-        xhr.onload = function() {
-          window.location.reload();
-        };
-
-        xhr.open('post', '<?php echo $settings['url']; ?>', true);
-        xhr.send(form);
-      }
-
-      // Initialize upload form
-      init();
-
-    //-->
-    </script>
-  </body>
-</html>
+  public function with ($key, $value) {
+    $this->keys[$key] = $value;
+  }
+  public function read () {
+    $r = $this->template;
+    foreach ($this->keys as $key => $value) { $r = s($r->replace($key,$value)); }
+    return $r;
+  }
+}
+class FileTemplate {
+  private $file;
+  private $keys;
+  function __construct ($filename) {
+    $this->file = new File($filename);
+    $this->keys = [];
+  }
+  public function with ($key, $value) {
+    $this->keys[$key] = $value;
+  }
+  public function read () {
+    $this->file->open("rb");
+    $r = s($this->file->read_all());
+    $this->file->close();
+    foreach ($this->keys as $key => $value) { $r = s($r->replace($key,$value)); }
+    return $r;
+  }
+}
+class StuffedStringArray {
+  private $array = null;
+  private $prologue = '';
+  private $epilogue = '';
+  private $before = '';
+  private $after = '';
+  function __construct (&$array) {
+    $this->array = a($array);
+  }
+  public function prologue ($str) {
+    $this->prologue = $str;
+  }
+  public function epilogue ($str) {
+    $this->epilogue = $str;
+  }
+  public function before ($str) {
+    $this->before = $str;
+  }
+  public function after ($str) {
+    $this->after = $str;
+  }
+  public function read () {
+    $r = s($this->prologue);
+    foreach($this->array as $value) { $r .= $this->before . $value . $this->after; }
+    $r .= $this->epilogue;
+    return $r;
+  }
+}
+class UploadedFile {
+  private $url;
+  private $file;
+  function __construct (&$url,&$file) {
+    $this->url = $url;
+    $this->file = $file;
+  }
+  static function format_bytes (int $size) {
+    $base = log($size, 1024);
+    $suffixes = array('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');  
+    return round(pow(1024, $base-floor($base)), 2).''.$suffixes[floor($base)];
+  }
+  public function url () {
+    return $this->url . $this->file->relative_name();
+  }
+  public function size () {
+    return UploadedFile::format_bytes($this->file->length());
+  }
+  public function creation () {
+    global $settings;
+    return date($settings['listfiles_date_format'], $this->file->creation_time());
+  }
+  public function name () {
+    return $this->file->name();
+  }
+  public function html_link () {
+    $link = new Template(
+      '<a class="uploaded_file" href="{FILE_URL}" target="_blank">'."\n".
+        '{FILE_NAME}<span>({FILE_SIZE}, {FILE_CREATION})</span>'."\n".
+      '</a>'."\n");
+    $link->with('{FILE_URL}',$this->url());
+    $link->with('{FILE_NAME}',$this->name());
+    $link->with('{FILE_SIZE}', $this->size());
+    $link->with('{FILE_CREATION}', $this->creation());
+    return $link->read();
+  }
+  public function html_button ($action,$description) {
+    $button = new Template(
+      '<form action="{SERVER_URL}" method="post">'."\n".
+        '<input type="hidden" name="target" value="{FILE_NAME}"/>'."\n".
+        '<input type="hidden" name="action" value="{BUTTON_ACTION}"/>'."\n".
+        '<button type="submit">{BUTTON_DESC}</button>'."\n".
+      '</form>'."\n");
+    $button->with('{SERVER_URL}',$this->url);
+    $button->with('{FILE_NAME}',$this->name());
+    $button->with('{BUTTON_ACTION}',$action);
+    $button->with('{BUTTON_DESC}',$description);
+    return $button->read();
+  }
+  public function read () {
+    return $this->html_link() . $this->html_button('delete','delete');
+  }
+}
+class UploadedFilesList {
+  private $files;
+  private $url;
+  function __construct (&$url, &$files_array) {
+    $this->url = $url;
+    $this->files = $files_array;
+  }
+  public function read () {
+    $url = $this->url;
+    $fileitems = a($this->files) ->map(function ($f) {
+        $a = new UploadedFile($url, $f);
+        return $a->read(); });
+    $items = new StuffedStringArray($fileitems);
+    $items->before('<li class="owned">'."\n");
+    $items->after('</li>'."\n");
+    return $items->read();
+  }
+}
+class RandomName {
+  private $name = '';
+  function __construct ($alphabet, $namesize) {
+    $name = '';
+    while (strlen($name) < $namesize) {
+      $name .= $alphabet[mt_rand(0, strlen($alphabet)-1)]; }
+    $this->name = s($name);
+  }
+  public function name () {
+    return $this->name;
+  }
+}
+// Rotate a two-dimensional array. Used for file uploads
+function diverse_array ($vector) {
+  $result = [];
+  foreach ($vector as $key1 => $value1) {
+    foreach ($value1 as $key2 => $value2) {
+      $result[$key2][$key1] = $value2; }}
+  return $result;
+}
+function file_upload_error ($err) {
+  switch ($err) {
+  case UPLOAD_ERR_NO_FILE:
+    echo('No file sent.' . "\n");
+  case UPLOAD_ERR_INI_SIZE:
+  case UPLOAD_ERR_FORM_SIZE:
+    echo('Exceeded filesize limit.' . "\n");
+  default:
+    echo('Unknown error.' . "\n");
+  }
+}
+function new_random_file ($extension) {
+  a:
+  global $settings;
+  $newname = new RandomName($settings['random_name_alphabet'], $settings['random_name_len']);
+  $ext = s(s(s($extension)
+    ->trim())
+    ->substr(0,$settings['random_name_len']-1))
+    ->preg_replace('/[^a-zA-Z0-9_-]/u','');
+  if ($ext == '') { $ext = 'txt'; }
+  $nfilename = 'uploads/' . $newname->name() . '.' . $ext;
+  if (file_exists($nfilename)) { goto a; }
+  return $nfilename;
+}
+function redirect_after ($seconds,$url) {
+  $t = new Template('Refresh: {SECS};url={URL}');
+  $t->with('{SECS}',$seconds);
+  $t->with('{URL}',$url);
+  header($t->read());
+}
+function upload_file ($file_data) {
+  global $settings;
+  redirect_after(10,$settings['url']);
+  if ($file_data['error'] != UPLOAD_ERR_OK) { file_upload_error($file_data['error']); return; }
+  $file = new File($file_data['tmp_name']);
+  $orig = new File($file_data['name']);
+  $nfilename = new_random_file($orig->extension());
+  if ($file->rename_to($nfilename)) {
+    echo($settings['url'] . '/' . $nfilename . "\n");
+  } else {
+    echo('Something gone wrong'); }
+}
+function delete_file ($filename) {
+  global $settings;
+  redirect_after(2,$settings['url']);
+  $file = new File('uploads/' . $filename);
+  if ($file->exists() && s($file->path())->pos(File::current_dir().'/uploads/') == 0) {
+    if ($file->remove()) {
+      echo('deleted: '.$file->name());
+    } else {
+      echo('Something gone wrong'); }
+  } else {
+    echo('Something gone wrong'); }
+}
+if (isset($_POST) && isset($_POST['target']) && isset($_POST['action'])) {
+  plain_text();
+  switch ($_POST['action']) {
+  case 'delete':
+    delete_file($_POST['target']);
+    break;
+  default:
+    echo 'Error'; }
+  exit;
+}
+if (isset($_FILES['file'])) {
+  plain_text();
+  if (is_array($_FILES['file'])) {
+    $file_array = diverse_array($_FILES['file']);
+    foreach ($file_array as $file_data) { upload_file($file_data); }
+  } else {
+    upload_file($_FILES['file']); }
+  exit;
+}
+html();
+$template = new FileTemplate('upload.html');
+$template->with('{LANG}',$settings['lang']);
+$template->with('{LANG_DIR}',$settings['lang_dir']);
+$template->with('{TITLE}',$settings['title']);
+$template->with('{URL}',$settings['url']);
+$template->with('{MAX_UPLOAD}',ini_get('upload_max_filesize'));
+$template->with('{MAX_FILES}',ini_get('max_file_uploads'));
+$uploads = new File('uploads');
+$uploaded_files = a($uploads->list()) ->map(function ($i) { return new File($i); });
+$ufiles_list = new UploadedFilesList($url, $uploaded_files);
+$template->with('{FILES_LIST}', $ufiles_list->read());
+echo($template->read());

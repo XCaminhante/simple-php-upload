@@ -1,0 +1,3 @@
+[submodule "php-o"]
+	path = php-o
+	url = https://github.com/XCaminhante/php-o.git

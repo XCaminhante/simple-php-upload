@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="{LANG}" lang="{LANG}" dir="{LANG_DIR}">
+<head>
+<meta charset="utf-8"/>
+<meta name="robots" content="noindex" />
+<meta name="referrer" content="origin-when-crossorigin" />
+<title>{TITLE}</title>
+<style media="screen">
+body {
+  background: #111;
+  margin: 0;
+  color: #ddd;
+  font-family: sans-serif;
+}
+
+body > h1 {
+  display: block;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 16px;
+  text-align: center;
+  margin: 0;
+}
+
+body > form {
+  display: block;
+  background: rgba(255, 255, 255, 0.075);
+  padding: 16px 16px;
+  margin: 0;
+  text-align: center;
+}
+
+body > ul {
+  display: block;
+  padding: 0;
+  max-width: 1000px;
+  margin: 32px auto;
+}
+
+body > ul > li {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+body > ul > li > a.uploaded_file {
+  display: block;
+  margin: 0 0 1px 0;
+  list-style: none;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  text-decoration: none;
+  color: inherit;
+  opacity: 0.5;
+}
+
+body > ul > li > a:hover {
+  opacity: 1;
+}
+
+body > ul > li > a:active {
+  opacity: 0.5;
+}
+
+body > ul > li > a > span {
+  float: right;
+  font-size: 90%;
+}
+
+body > ul > li > form {
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+}
+
+body > ul > li.owned {
+  margin: 8px;
+}
+
+body > ul > li > form > button {
+  opacity: 0.5;
+  display: inline-block;
+  padding: 4px 16px;
+  margin: 0;
+  border: 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+body > ul > li > form > button:hover {
+  opacity: 1;
+}
+
+body > ul > li > form > button:active {
+  opacity: 0.5;
+}
+
+body > ul > li.uploading {
+  animation: upanim 2s linear 0s infinite alternate;
+}
+
+@keyframes upanim {
+  from {
+    opacity: 0.3;
+  }
+  to {
+    opacity: 0.8;
+  }
+}
+</style>
+</head>
+<body>
+<h1>{TITLE}</h1>
+<form action="{URL}" method="post" enctype="multipart/form-data" class="dropzone" id="simpleupload-form">
+  <p> <a href="{URL}" style="color:white;">{URL}</a> file upload service. Works better with JS switched on.<br/>
+  <b>Terms of use: Don't send anything that you wouldn't like people know you have on your computer.</b> </p>
+  <p> Choose a file or Drag&amp;Drop. Maximum upload total size is {MAX_UPLOAD}, maximum number of simultaneous files is {MAX_FILES}. </p>
+  <input type="file" name="file[]" multiple="multiple" id="simpleupload-input"/>
+  <button type="submit">Submit</button>
+</form>
+<ul id="simpleupload-ul">{FILES_LIST}</ul>
+<script>
+function e(id) { return document.getElementById(id) }
+
+var target_form        = e('simpleupload-form')
+var target_ul          = e('simpleupload-ul')
+var target_input       = e('simpleupload-input')
+var settings_listfiles = true
+
+function init () {
+  target_form.addEventListener('dragover', function (event) {
+    event.preventDefault()
+  }, false)
+
+  target_form.addEventListener('drop', handleFiles, false)
+
+  target_input.onchange = function () {
+    addFileLi('Uploading...', '')
+    target_form.submit()
+  }
+}
+
+function addFileLi (name, info) {
+  if (settings_listfiles == false) { return }
+
+  target_form.style.display = 'none'
+
+  var new_li = document.createElement('li')
+  new_li.className = 'uploading'
+
+  var new_a = document.createElement('a')
+  new_a.innerHTML = name
+  new_li.appendChild(new_a)
+
+  var new_span = document.createElement('span')
+  new_span.innerHTML = info
+  new_a.appendChild(new_span)
+
+  target_ul.insertBefore(new_li, target_ul.firstChild)
+}
+
+// Handles given event for file upload
+function handleFiles (event) {
+  event.preventDefault()
+
+  var files = event.dataTransfer.files
+
+  var form = new FormData()
+
+  for (var i = 0; i < files.length; i++) {
+    form.append('file[]', files[i])
+    addFileLi(files[i].name, files[i].size + ' bytes') }
+
+  var xhr = new XMLHttpRequest()
+  xhr.onload = function() { window.location.reload() }
+
+  xhr.open('post', '{URL}', true)
+  xhr.send(form)
+}
+
+init()
+</script>
+</body>
+</html>
