@@ -46,28 +46,30 @@ Do not allow uploaded code execution!
 ### NGINX configuration example
 Edit the NGINX configuration file (`/etc/nginx/sites-enabled/fileuploader`):
 
-  server {
-    listen 80 default_server;
-    listen [::]:80 default_server ipv6only=on;
+```
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server ipv6only=on;
 
-    root /usr/share/nginx;
-    index index.php;
+  root /usr/share/nginx;
+  index index.php;
 
-    server_name localhost;
+  server_name localhost;
 
-    location / {
-      try_files $uri $uri/ =404;
-    }
-
-    error_page 404 /index.php;
-
-    location /index.php {
-      fastcgi_split_path_info ^(.+\.php)(/.+)$;
-      fastcgi_pass unix:/var/run/php5-fpm.sock;
-      fastcgi_index index.php;
-      include fastcgi_params;
-    }
+  location / {
+    try_files $uri $uri/ =404;
   }
+
+  error_page 404 /index.php;
+
+  location /index.php {
+    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    fastcgi_pass unix:/var/run/php5-fpm.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+  }
+}
+```
 
 ### Lighttpd configuration example
 
