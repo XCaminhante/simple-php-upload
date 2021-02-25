@@ -20,6 +20,7 @@ There are few options that you should change by editing config.php:
   `'title' => 'File Upload Service'`
 
 - Website URL:
+
   `'url' => 'http://localhost:8080'`
 
 - Website language:
@@ -28,7 +29,6 @@ There are few options that you should change by editing config.php:
   'lang_dir' => 'ltr'
   ```
 - Random name generation configs:
-
   ```
   'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
   'random_name_len' => 20,
@@ -48,7 +48,7 @@ There are few options that you should change by editing config.php:
   This example will upload a file and copy URL to clipboard:
 
   ```bash
-  curl -F "file[]=@file.jpg" strace.club | xclip -sel clip
+  curl -F "file[]=@file.jpg" localhost:8080 | xclip -sel clip
   ```
 
 ## Server configuration

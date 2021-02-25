@@ -148,7 +148,8 @@ function handleFiles (event) {
   var form = new FormData()
 
   for (var i = 0; i < files.length; i++) {
-    form.append('file[]', files[i]) }
+    form.append('file[]', files[i])
+    addFileLi('Uploading '+files[i].name+' ...', i) }
 
   var xhr = new XMLHttpRequest()
   xhr.onload = function() { window.location.reload() }
