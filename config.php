@@ -6,5 +6,5 @@ $settings = array(
   'lang_dir' => 'ltr',
   'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
   'random_name_len' => 20,
-  'listfiles_date_format' => 'Y/m/d H:i',
+  'date_format' => 'Y/m/d H:i',
 );

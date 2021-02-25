@@ -347,7 +347,7 @@ class UploadedFile {
   }
   public function creation () {
     global $settings;
-    return date($settings['listfiles_date_format'], $this->file->creation_time());
+    return date($settings['date_format'], $this->file->creation_time());
   }
   public function name () {
     return $this->file->name();
@@ -429,7 +429,7 @@ function file_upload_error ($err) {
     echo('Unknown error.' . "\n");
   }
 }
-function new_random_file ($extension) {
+function new_random_filename ($extension) {
   a:
   global $settings;
   $newname = new RandomName($settings['random_name_alphabet'], $settings['random_name_len']);
@@ -454,7 +454,7 @@ function upload_file ($file_data) {
   if ($file_data['error'] != UPLOAD_ERR_OK) { file_upload_error($file_data['error']); return; }
   $file = new File($file_data['tmp_name']);
   $orig = new File($file_data['name']);
-  $nfilename = new_random_file($orig->extension());
+  $nfilename = new_random_filename($orig->extension());
   if ($file->rename_to($nfilename)) {
     echo($settings['url'] . '/' . $nfilename . "\n");
   } else {
