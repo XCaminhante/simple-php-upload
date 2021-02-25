@@ -31,20 +31,9 @@ class File {
   private $pathinfo = '';
   private $filehandle = false;
   private $openmode = '';
-  // private $stats;
   function __construct ($filename) {
     $this->filename = s($filename);
     $this->pathinfo = pathinfo($filename);
-    // $this->stats = stats($filename);
-  }
-  function __destruct () {
-  }
-  // Directory of the current script
-  static function current_dir () {
-    return dirname(__FILE__);
-  }
-  static function separator () {
-    return DIRECTORY_SEPARATOR;
   }
   static function get_straight_path ($path) {
     $path = str_replace(array('/', '\\'), DIRECTORY_SEPARATOR, $path);
@@ -58,17 +47,21 @@ class File {
         $absolutes[] = $part; }}
     return implode(DIRECTORY_SEPARATOR, $absolutes);
   }
+  // Directory of the current script
+  static function current_dir () {
+    return dirname(__FILE__);
+  }
+  static function separator () {
+    return DIRECTORY_SEPARATOR;
+  }
   public function is_directory () {
     return is_dir($this->filename);
-    // return ($this->stats['mode'] & directory) === directory;
   }
   public function is_file () {
     return is_file($this->filename);
-    // return ($this->stats['mode'] & file) === file;
   }
   // The directory containing this file/directory
   public function parent () {
-    // return dirname($this->filename);
     return $this->pathinfo['dirname'];
   }
   // Canonical path to file/directory
@@ -92,7 +85,6 @@ class File {
     if ($this->is_file()) {
       return filesize($this->filename); }
     return -1;
-    // return $this->stats['size'];
   }
   public function exists () {
     return file_exists($this->filename);
@@ -266,8 +258,8 @@ class File {
   }
 }
 class Template {
-  private $keys;
   private $template;
+  private $keys;
   function __construct ($template) {
     $this->template = s($template);
     $this->keys = [];
@@ -336,8 +328,8 @@ class UploadedFile {
   }
   static function format_bytes (int $size) {
     $base = log($size, 1024);
-    $suffixes = array('B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB');  
-    return round(pow(1024, $base-floor($base)), 2).''.$suffixes[floor($base)];
+    $suffixes = array('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB');  
+    return round(pow(1024, $base-floor($base)), 2).' '.$suffixes[floor($base)];
   }
   public function url () {
     return $this->url . $this->file->relative_name();

@@ -1,5 +1,5 @@
 # Simple PHP upload
-Simple PHP file upload (file share hosting) script.
+Simple PHP file upload (anonymous file share hosting) script.
 
 > :warning: **Security warning**: There is no limit on file size or file type. Please make sure that file permissions are set right so nobody can execute uploaded code. See [server configuration](#server-configuration) for examples.
 
@@ -7,30 +7,41 @@ Simple PHP file upload (file share hosting) script.
 - [x] Delete files
 - [x] AJAX Uploader
 - [x] PHP-O integration
-- [ ] A better README.md
+- [x] A better README.md
 
 ## Installation
-Just drop a PHP file in any directory. It will work straight away
+Just unpack all repo's files in a directory and edit config.php. It will work straight away
 
 ## Configuration
-There are few options that you can change by editing the file itself:
+There are few options that you should change by editing config.php:
+
+- Website title:
+
+  `'title' => 'File Upload Service'`
+
+- Website URL:
+  `'url' => 'http://localhost:8080'`
+
+- Website language:
+  ```
+  'lang' => 'en',
+  'lang_dir' => 'ltr'
+  ```
+- Random name generation configs:
+
+  ```
+  'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
+  'random_name_len' => 20,
+  ```
 
 - Display file dates format
 
-  `listfiles_date_format` => `'F d Y H:i:s'`
-
-- Randomize file names (number of 'false')
-
-  `random_name_len` => `4`
-
-- Random file name letters
-
-  `random_name_alphabet` => `'qwertyuiopasdfghjklzxcvbnm'`
+  `'date_format' => 'Y/m/d H:i'`
 
 ## Usage options
 - Through an interface:
   - Choose files via dialogue
-  - Drop files, via HTML5 drag'and'drop (using [dropzone.js](http://www.dropzonejs.com/))
+  - Drop files, via HTML5 drag'and'drop
   - Basic HTML Form (if no JavaScript is suported)
 - Upload using any compatible tool (like cURL)
 
@@ -41,10 +52,9 @@ There are few options that you can change by editing the file itself:
   ```
 
 ## Server configuration
-Do not allow uploaded code execution!
+Do not allow uploaded scripts' execution!
 
 ### NGINX configuration example
-Edit the NGINX configuration file (`/etc/nginx/sites-enabled/fileuploader`):
 
 ```
 server {
@@ -74,6 +84,28 @@ server {
 ### Lighttpd configuration example
 
 ```
+server.document-root = "/home/user/Public/www/"
+server.port = 8080
+
+fastcgi.server = (
+  ".php" => ((
+    "socket" => "/home/user/Public/meta/php/php.socket",
+    "bin-path" => "/home/user/Public/src/dist/bin/php-cgi",
+    "idle-timeout" => 20,
+    "max-procs" => 500,
+    "bin-environment" => (
+      "PHP_FCGI_CHILDREN" => "15",
+      "PHP_FCGI_MAX_REQUESTS" => "500",
+      "PHPRC" => "/home/user/Public/config/",
+      "REAL_SCRIPT_NAME" => ""
+    ),
+    "bin-copy-environment" => (
+      "PATH", "SHELL", "USER", "BASE"
+    ),
+    "broken-scriptfilename" => "enable"
+  ))
+)
+
 $HTTP["url"] =~ "/uploads/" {
   cgi.assign = ()
   scgi.server = ()
