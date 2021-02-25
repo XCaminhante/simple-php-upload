@@ -73,4 +73,10 @@ server {
 
 ### Lighttpd configuration example
 
-
+```
+$HTTP["url"] =~ "/uploads/" {
+  cgi.assign = ()
+  scgi.server = ()
+  fastcgi.server = ()
+}
+```
