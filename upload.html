@@ -152,7 +152,7 @@ function handleFiles (event) {
     addFileLi('Uploading '+files[i].name+' ...', i) }
 
   var xhr = new XMLHttpRequest()
-  xhr.onload = function() { window.location.reload() }
+  xhr.onload = function() { window.location.assign('{URL}') }
 
   xhr.open('post', '{URL}', true)
   xhr.send(form)

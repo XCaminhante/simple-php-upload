@@ -448,7 +448,7 @@ function upload_file ($file_data) {
   $orig = new File($file_data['name']);
   $nfilename = new_random_filename($orig->extension());
   if ($file->rename_to($nfilename)) {
-    echo($settings['url'] . '/' . $nfilename . "\n");
+    echo($settings['url'] . $nfilename . "\n");
   } else {
     echo('Something gone wrong'); }
 }
