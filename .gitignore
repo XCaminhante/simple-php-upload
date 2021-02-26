@@ -4,6 +4,7 @@
 # Except not these files:
 !.gitignore
 !.gitattributes
+!.gitmodules
 !index.php
 !config.php
 !README.md
