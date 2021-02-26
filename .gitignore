@@ -5,7 +5,9 @@
 !.gitignore
 !.gitattributes
 !index.php
+!config.php
 !README.md
 !LICENSE
 !php-o
 !upload.html
+!u.leo
