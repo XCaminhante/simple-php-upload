@@ -6,7 +6,7 @@
 !.gitattributes
 !.gitmodules
 !index.php
-!config.php
+!config.example.php
 !README.md
 !LICENSE
 !php-o

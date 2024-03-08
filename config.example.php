@@ -1,4 +1,4 @@
-<?php
+<?
 $settings = array(
   'title' => 'File Upload Service',
   'url' => 'http://localhost:8080',
