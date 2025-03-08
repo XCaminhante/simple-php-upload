@@ -1,10 +1,10 @@
 <?
 $settings = array(
   'title' => 'File Upload Service',
-  'url' => 'http://localhost:8080',
+  'url' => O\s("{$_SERVER['REQUEST_SCHEME']}://{$_SERVER['SERVER_NAME']}{$_SERVER['REQUEST_URI']}")->replace("index.php",""),
   'lang' => 'en',
   'lang_dir' => 'ltr',
-  'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyz0123456789',
-  'random_name_len' => 20,
+  'random_name_alphabet' => 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-',
+  'random_name_len' => 25,
   'date_format' => 'Y/m/d H:i',
 );
