@@ -5,10 +5,12 @@
 !.gitignore
 !.gitattributes
 !.gitmodules
+!.project
 !index.php
 !config.example.php
 !README.md
 !LICENSE
 !php-o
 !upload.html
-!u.leo
+!code.js
+!style.css
